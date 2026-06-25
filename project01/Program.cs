@@ -311,23 +311,26 @@ namespace project01
 
         public static void DepartFlight()
         {
-            Console.WriteLine("\n Depart Flight");
+            Console.WriteLine("\n=== Depart a Flight ===");
 
-            List<Flight> scheduledFlights = flightContext.Flights.Where(f => f.status == "Scheduled").ToList();
+            List<Flight> scheduledFlights = flightContext.Flights
+                .Where(f => f.status == "Scheduled")
+                .ToList();
 
             foreach (Flight f in scheduledFlights)
             {
                 Console.WriteLine($"Flight ID: {f.flightId} | Code: {f.flightCode} | " +
-                                  $"Date: {f.departureDate} | Time: {f.departureTime} | " +
-                                  $"Available Seats: {f.availableSeats}");
+                                  $"Destination: {f.destination}");
             }
 
-            Console.WriteLine("Enter flight ID to depart:");
+            Console.Write("Enter Flight ID: ");
             int flightId = int.Parse(Console.ReadLine());
 
-            Flight selectedFlight = flightContext.Flights.FirstOrDefault(f => f.flightId == flightId);
+            Flight selectedFlight = flightContext.Flights
+                .FirstOrDefault(f => f.flightId == flightId);
 
-            if (selectedFlight == null) {
+            if (selectedFlight == null)
+            {
                 Console.WriteLine("Flight not found.");
                 return;
             }
@@ -340,25 +343,123 @@ namespace project01
 
             selectedFlight.status = "Departed";
 
+            Pilot assignedPilot = flightContext.Pilots
+                .FirstOrDefault(p => p.pilotId == selectedFlight.pilotId);
+
+            if (assignedPilot != null)
+            {
+                assignedPilot.flightHours += int.Parse(selectedFlight.flightDuration);
+            }
+
+            Console.WriteLine($"Flight {selectedFlight.flightCode} has departed successfully.");
         }
         public static void CancelFlight()
         {
+           
+            //The airline needs to cancel an entire flight (weather, technical issue, etc.). When a flight is cancelled,every confirmed booking on that flight must also be cancelled so that passengers are informed andseats are logically freed. The pilot assigned to that flight becomes available again.The system reports how many bookings were affected
+
             Console.WriteLine("\n Cancel Flight");
 
             Console.WriteLine("Enter flight ID:");
             int flightId = int.Parse(Console.ReadLine());
 
+            Flight flight = flightContext.Flights.FirstOrDefault(f => f.flightId == flightId);
+
+            if (flight == null)
+            {
+                Console.WriteLine("Flight not found.");
+                return;
+            }
+
+            if (flight.status == "Cancelled")
+            {
+                Console.WriteLine("This flight is already cancelled.");
+                return;
+            }
+
+            if (flight.status == "Scheduled")
+            {
+                Console.WriteLine("Cannot cancel a scheduled flight. Please depart the flight first.");
+                return;
+            }
+
+            if (flight.status == "Departed")
+            {
+                Console.WriteLine("Cannot cancel a departed flight.");
+                return;
+            }
+
+            // Cancel all confirmed bookings for this flight
+            List<Booking> affectedBookings = flightContext.Bookings.Where(b => b.flightId == flightId && b.status == "Confirmed").ToList();
+
+            foreach (Booking booking in affectedBookings)
+            {
+                booking.status = "Cancelled";
+                // Update available seats for the flight
+                flight.availableSeats++;
+            }
+
+            // Mark the flight as cancelled
+            flight.status = "Cancelled";
+
+            Console.WriteLine($"Flight {flight.flightId} has been cancelled.");
+            Console.WriteLine($"Number of affected bookings: {affectedBookings.Count}");
 
         }
 
-        public static void PassengerBookingHistory()
+        public static void PassengerBookingHistory() // 
         {
+            //Passenger Booking History A customer service agent pulls up the complete travel history of a passenger. For every booking this passenger has ever made, display: the flight code, origin, destination, departure date, seat number, price paid, and booking status. At the bottom show the total amount this passenger has spent on confirmed bookings only.
             Console.WriteLine("\n Passenger Booking History");
+
+            Console.WriteLine("Enter passenger ID:");
+            int passengerId = int.Parse(Console.ReadLine());
+
+            Passenger passenger = flightContext.Passengers.FirstOrDefault(p => p.passengerId == passengerId);
+
+            if (passenger == null)
+            {
+                Console.WriteLine("Passenger not found.");
+                return;
+            }
+
+            List<Booking> passengerBookings = flightContext.Bookings.Where(b => b.passengerId == passengerId).ToList();
+
+         if (passengerBookings.Count == 0)
+            {
+                Console.WriteLine("No bookings found for this passenger.");
+                return;
+            }
+
+            decimal totalSpent = 0;
+            Console.WriteLine($"\nBooking History for Passenger: {passenger.passengerName}");
+            Console.WriteLine("--------------------------------------------------");
+            foreach (Booking booking in passengerBookings)
+            {
+                Flight flight = flightContext.Flights.FirstOrDefault(f => f.flightId == booking.flightId);
+                if (flight != null)
+                {
+                    Console.WriteLine($"Flight Code: {flight.flightCode} | Origin: {flight.origin} | Destination: {flight.destination} | " +
+                                      $"Departure Date: {flight.departureDate} | Seat Number: S{booking.availableSeats} | " +
+                                      $"    Total Price : {booking.totalPrice} | Booking Status: {booking.status}");
+                    if (booking.status == "Confirmed")
+                    {
+                        totalSpent += booking.totalPrice;
+                    }
+                }
+            }
+            Console.WriteLine("--------------------------------------------------");
+            Console.WriteLine($"Total Amount Spent on Confirmed Bookings: {totalSpent}");
+
         }
 
         public static void FlightRevenueAndLoadFactor()
         {
-            Console.WriteLine("\n Flight Revenue and Load Factor");
+            //Flight Revenue & Load Factor Report The airline management requests a performance report for all flights. For each flight display: flight code, route (origin fi destination), total confirmed bookings, total revenue collected (sum of all confirmed booking prices), and the load factor as a percentage (confirmed bookings / total aircraft seats * 100). Sort the results so the highest-revenue flight appears first. At the very end print the grand total revenue across all flights.
+
+
+
+
         }
 
 
@@ -423,6 +524,13 @@ namespace project01
                     default:
                         Console.WriteLine("Invalid choice, please try again.");
                         break;
+                }
+
+                if (!exit)
+                {
+                    Console.WriteLine("\n Press any key to continue ");
+                    Console.ReadKey();
+                    Console.Clear();
                 }
             }
         }
