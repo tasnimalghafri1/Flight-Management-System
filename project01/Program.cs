@@ -15,7 +15,7 @@ namespace project01
             Passengers = new List<Models.Passenger>()
         };
 
-        public static void RegisterPassenger()
+        public static void RegisterPassenger(List<Passenger> Passengers )
         {
             Console.WriteLine("\n Register New Passenger");
 
@@ -49,7 +49,7 @@ namespace project01
             Console.WriteLine($"Passenger registered successfully. Assigned ID: {passengerId}");
         }
 
-        public static void AddAircraft()
+        public static void AddAircraft(List<Aircraft> aircrafts)
         {
             Console.WriteLine("\n Add New Aircraft");
 
@@ -66,13 +66,13 @@ namespace project01
                 aircraftId = aircraftId,
                 model = aircraftModel,
                 totalSeats = totalSeats,
-                isOperational = false // default value
+                isOperational = true // default value
             }
             );
 
             Console.WriteLine($"Aircraft added successfully. Assigned ID: {aircraftId}");
         }
-        public static void RegisterPilot()
+        public static void RegisterPilot(FlightContext flightContext)
         {
             Console.WriteLine("\n Register New Pilot");
 
@@ -99,7 +99,7 @@ namespace project01
             Console.WriteLine($"Pilot registered successfully. Assigned ID: {pilotId}");
         }
 
-        public static void ViewAllFlights()
+        public static void ViewAllFlights(List<Flight> Flights)
         {
             Console.WriteLine("\n All Flights:");
             foreach (Flight f in flightContext.Flights)
@@ -109,7 +109,7 @@ namespace project01
             }
         }
 
-        public static void ScheduleFlight()
+        public static void ScheduleFlight(FlightContext flightContext)
         {
             Console.WriteLine("Available Aircraft ");
 
@@ -191,7 +191,7 @@ namespace project01
 
         }
 
-        public static void BookFlight()
+        public static void BookFlight(FlightContext flightContext)
         {
             Console.WriteLine("\n=== Book a Flight ===");
 
@@ -225,9 +225,7 @@ namespace project01
 
             foreach (Flight f in availableFlights)
             {
-                Console.WriteLine($"Flight ID: {f.flightId} | Code: {f.flightCode} | " +
-                                  $"Date: {f.departureDate} | Time: {f.departureTime} | " +
-                                  $"Price: {f.ticketPrice}");
+                Console.WriteLine($"Flight ID: {f.flightId} | Code: {f.flightCode} | Date: {f.departureDate} | Time: {f.departureTime} | Price: {f.ticketPrice}");
             }
 
             Console.Write("Enter Flight ID: ");
@@ -244,26 +242,23 @@ namespace project01
 
             int bookingId = flightContext.Bookings.Count + 1;
 
-            string seatLabel = $"S{selectedFlight.availableSeats}";
-
             flightContext.Bookings.Add(new Booking
             {
-                bookingId = bookingId,                     // System generated
-                passengerId = passengerId,                // User selected
-                flightId = flightId,                      // User selected
-                availableSeats = selectedFlight.availableSeats,                    // System assigned
-                totalPrice = selectedFlight.ticketPrice   // System calculated
+                bookingId = bookingId,                   // System generated
+                passengerId = passengerId,              
+                flightId = flightId,                    
+                totalPrice = selectedFlight.ticketPrice,// System calculated
+                status = "Confirmed"                    // Default value
             });
 
             selectedFlight.availableSeats--;
 
             Console.WriteLine($"Booking created successfully.");
             Console.WriteLine($"Booking ID: {bookingId}");
-            Console.WriteLine($"Seat Number: {seatLabel}");
             Console.WriteLine($"Total Price: {selectedFlight.ticketPrice}");
         }
 
-        public static void CancelBooking()
+        public static void CancelBooking(FlightContext flightContext)
         {
             Console.WriteLine("\n Cancel Booking");
 
@@ -309,7 +304,7 @@ namespace project01
 
         }
 
-        public static void DepartFlight()
+        public static void DepartFlight(FlightContext flightContext)
         {
             Console.WriteLine("\n=== Depart a Flight ===");
 
@@ -353,7 +348,7 @@ namespace project01
 
             Console.WriteLine($"Flight {selectedFlight.flightCode} has departed successfully.");
         }
-        public static void CancelFlight()
+        public static void CancelFlight(FlightContext flightContext)
         {
            
             //The airline needs to cancel an entire flight (weather, technical issue, etc.). When a flight is cancelled,every confirmed booking on that flight must also be cancelled so that passengers are informed andseats are logically freed. The pilot assigned to that flight becomes available again.The system reports how many bookings were affected
@@ -377,11 +372,7 @@ namespace project01
                 return;
             }
 
-            if (flight.status == "Scheduled")
-            {
-                Console.WriteLine("Cannot cancel a scheduled flight. Please depart the flight first.");
-                return;
-            }
+            
 
             if (flight.status == "Departed")
             {
@@ -402,12 +393,14 @@ namespace project01
             // Mark the flight as cancelled
             flight.status = "Cancelled";
 
+
+
             Console.WriteLine($"Flight {flight.flightId} has been cancelled.");
             Console.WriteLine($"Number of affected bookings: {affectedBookings.Count}");
 
         }
 
-        public static void PassengerBookingHistory() // 
+        public static void PassengerBookingHistory(FlightContext flightContext) // 
         {
             //Passenger Booking History A customer service agent pulls up the complete travel history of a passenger. For every booking this passenger has ever made, display: the flight code, origin, destination, departure date, seat number, price paid, and booking status. At the bottom show the total amount this passenger has spent on confirmed bookings only.
             Console.WriteLine("\n Passenger Booking History");
@@ -440,7 +433,7 @@ namespace project01
                 if (flight != null)
                 {
                     Console.WriteLine($"Flight Code: {flight.flightCode} | Origin: {flight.origin} | Destination: {flight.destination} | " +
-                                      $"Departure Date: {flight.departureDate} | Seat Number: S{booking.availableSeats} | " +
+                                      $"Departure Date: {flight.departureDate} | Seat Number: S{booking.seatNumber} | " +
                                       $"    Total Price : {booking.totalPrice} | Booking Status: {booking.status}");
                     if (booking.status == "Confirmed")
                     {
@@ -453,10 +446,43 @@ namespace project01
 
         }
 
-        public static void FlightRevenueAndLoadFactor()
+        public static void FlightRevenueAndLoadFactor(FlightContext flightContext)
         {
-            //Flight Revenue & Load Factor Report The airline management requests a performance report for all flights. For each flight display: flight code, route (origin fi destination), total confirmed bookings, total revenue collected (sum of all confirmed booking prices), and the load factor as a percentage (confirmed bookings / total aircraft seats * 100). Sort the results so the highest-revenue flight appears first. At the very end print the grand total revenue across all flights.
+            Console.WriteLine("\n Flight Revenue And Load Factor :  ");
 
+            decimal grandTotalRevenue = 0;
+
+            foreach (Flight flight in flightContext.Flights
+                .OrderByDescending(f =>
+                    flightContext.Bookings
+                    .Where(b => b.flightId == f.flightId)
+                    .Sum(b => b.totalPrice)))
+            {
+                int totalBookings = flightContext.Bookings
+                    .Count(b => b.flightId == flight.flightId &&
+                                b.status == "Confirmed");
+
+                decimal revenue = flightContext.Bookings
+                    .Where(b => b.flightId == flight.flightId &&
+                                b.status == "Confirmed")
+                    .Sum(b => b.totalPrice);
+
+                int totalSeats = flight.availableSeats + totalBookings;
+
+                double loadFactor =
+                    ((double)totalBookings / totalSeats) * 100;
+
+                grandTotalRevenue += revenue;
+
+                Console.WriteLine(
+                    $"Flight: {flight.flightCode} | " +
+                    $"Route: {flight.origin} -> {flight.destination} | " +
+                    $"Bookings: {totalBookings} | " +
+                    $"Revenue: {revenue} | " +
+                    $"Load Factor: {loadFactor:F2}%");
+            }
+
+            Console.WriteLine($"\nGrand Total Revenue: {grandTotalRevenue}");
 
 
 
@@ -465,6 +491,41 @@ namespace project01
 
         static void Main(string[] args)
         {
+            flightContext.Passengers = new List<Passenger>()
+            {
+                new Passenger
+                {
+                     passengerId = 1,
+                    passengerName = "Tasnim",
+                    passengerEmail = "ta@gmail.com",
+                    passengerPhone = "988233",
+                    passportNumber = "20232215",
+                    nationality = "Omani"
+                },
+                new Passenger
+                {
+                    passengerId = 2,
+                    passengerName = "shrouq",
+                    passengerEmail = "shr@gmail.com",
+                    passengerPhone = "988133",
+                    passportNumber = "20234215",
+                    nationality = "Omani"
+                },
+                new Passenger
+                {
+                    passengerId = 3,
+                    passengerName = "Shahad",
+                    passengerEmail = "sh@gmail.com",
+                    passengerPhone = "988433",
+                    passportNumber = "20232216",
+                    nationality = "Omani"
+                }
+
+            };
+
+    
+
+
             bool exit = false;
             while (!exit)
             {
@@ -486,37 +547,37 @@ namespace project01
                 switch (choice)
                 {
                     case "1":
-                        RegisterPassenger();
+                        RegisterPassenger(flightContext.Passengers);
                         break;
                     case "2":
-                        AddAircraft();
+                        AddAircraft( flightContext.Aircrafts);
                         break;
                     case "3":
-                        RegisterPilot();
+                        RegisterPilot(flightContext);
                         break;
                     case "4":
-                        ViewAllFlights();
+                        ViewAllFlights(flightContext.Flights);
                         break;
                     case "5":
-                        ScheduleFlight();
+                        ScheduleFlight(flightContext);
                         break;
                     case "6":
-                        BookFlight();
+                        BookFlight(flightContext);
                         break;
                     case "7":
-                        CancelBooking();
+                        CancelBooking(flightContext);
                         break;
                     case "8":
-                        DepartFlight();
+                        DepartFlight(flightContext);
                         break;
                     case "9":
-                        CancelFlight();
+                        CancelFlight( flightContext);
                         break;
                     case "10":
-                        PassengerBookingHistory();
+                        PassengerBookingHistory( flightContext);
                         break;
                     case "11":
-                        FlightRevenueAndLoadFactor();
+                        FlightRevenueAndLoadFactor( flightContext);
                         break;
                     case "12":
                         exit = true;
